@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Fraud Radar | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link active">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 24px;">
+            <span class="badge badge-danger" style="margin-bottom: 6px;">REQ-F-004 • REAL-TIME FLINK FRAUD EVALUATION</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Real-Time Transaction Fraud Radar</h1>
+            <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                Continuous streaming evaluation across transaction velocity, geo-velocity, and ISO 20022 sanctions screening.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 1.125rem; margin-bottom: 16px;">Flagged Suspicious Activity Stream</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alert ID</th>
+                            <th>Txn ID</th>
+                            <th>Risk Score</th>
+                            <th>Triggered Rule</th>
+                            <th>Severity</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fraud-tbody">
+                        <tr><td colspan="7">Loading fraud telemetry...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadFraudRadar() {
+            try {
+                const res = await BankingAPI.getFraudAlerts();
+                const tbody = document.getElementById('fraud-tbody');
+                tbody.innerHTML = '';
+
+                if (!res.alerts || res.alerts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7">Zero anomalies detected. All streams healthy.</td></tr>';
+                    return;
+                }
+
+                res.alerts.forEach(a => {
+                    const tr = document.createElement('tr');
+                    const isHigh = a.severity === 'HIGH';
+                    tr.innerHTML = `
+                        <td><code>${a.alert_id}</code></td>
+                        <td><code>${a.transaction_id}</code></td>
+                        <td><span style="font-weight: 700; color: ${isHigh ? 'var(--c-danger)' : 'var(--c-warn)'};">${(a.risk_score * 100).toFixed(0)}%</span></td>
+                        <td>${a.rule_triggered}</td>
+                        <td><span class="badge ${isHigh ? 'badge-danger' : 'badge-warning'}">${a.severity}</span></td>
+                        <td>${a.flagged_at}</td>
+                        <td><span class="badge badge-danger">${a.status}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadFraudRadar);
+    </script>
+</body>
+</html>

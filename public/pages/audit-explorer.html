@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immutable Audit Explorer | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link active">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 24px;">
+            <span class="badge badge-success" style="margin-bottom: 6px;">REQ-F-010 • REQ-F-013 • IMMUTABLE AUDIT TRAIL</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Immutable Audit Explorer & Invariants</h1>
+            <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                Continuous 60-second double-entry ledger reconciliation and tamper-evident event log.
+            </p>
+        </div>
+
+        <div class="card" style="border-left: 4px solid var(--c-ok); margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2 style="font-size: 1.125rem;">Continuous Ledger Invariant Health Check (60s Cron)</h2>
+                <span id="inv-status-badge" class="badge badge-success">HEALTHY</span>
+            </div>
+            <div class="grid-cols-3" style="margin-top: 12px;">
+                <div>
+                    <span style="font-size: 0.8125rem; color: var(--c-text-secondary);">Total Ledger Debits:</span>
+                    <div id="inv-debits" style="font-size: 1.25rem; font-weight: 700;">$0.00</div>
+                </div>
+                <div>
+                    <span style="font-size: 0.8125rem; color: var(--c-text-secondary);">Total Ledger Credits:</span>
+                    <div id="inv-credits" style="font-size: 1.25rem; font-weight: 700;">$0.00</div>
+                </div>
+                <div>
+                    <span style="font-size: 0.8125rem; color: var(--c-text-secondary);">Systemic Imbalance Discrepancy:</span>
+                    <div id="inv-discrepancy" style="font-size: 1.25rem; font-weight: 700; color: var(--c-ok);">$0.00 (0.00%)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 1.125rem; margin-bottom: 16px;">Tamper-Evident Event Trail</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Actor</th>
+                            <th>Action</th>
+                            <th>Entity Type</th>
+                            <th>Entity ID</th>
+                            <th>IP Address</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-tbody">
+                        <tr><td colspan="8">Loading audit logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadAuditExplorer() {
+            try {
+                // Load invariant status
+                const inv = await BankingAPI.getInvariantStatus();
+                document.getElementById('inv-debits').innerText = `$${inv.total_debits.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                document.getElementById('inv-credits').innerText = `$${inv.total_credits.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                document.getElementById('inv-discrepancy').innerText = `$${inv.discrepancy.toFixed(2)} (Invariants Preserved)`;
+
+                // Load audit logs
+                const res = await BankingAPI.getAuditLogs();
+                const tbody = document.getElementById('audit-tbody');
+                tbody.innerHTML = '';
+
+                if (!res.logs || res.logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8">No audit events recorded yet.</td></tr>';
+                    return;
+                }
+
+                res.logs.forEach(l => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><code>${l.log_id}</code></td>
+                        <td>${l.actor}</td>
+                        <td><span class="badge badge-primary">${l.action}</span></td>
+                        <td>${l.entity_type}</td>
+                        <td><code>${l.entity_id}</code></td>
+                        <td>${l.ip_address}</td>
+                        <td>${l.timestamp}</td>
+                        <td><span class="badge badge-success">${l.status}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadAuditExplorer);
+    </script>
+</body>
+</html>

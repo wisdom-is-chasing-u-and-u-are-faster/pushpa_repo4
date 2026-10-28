@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: digital_banking_postgres
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_DB: digital_banking
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: digital_banking_redis
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: digital_banking_api
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:///./digital_banking.db
+      REDIS_URL: redis://redis:6379/0
+      PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:

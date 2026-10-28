@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Details & Ledger History | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">← Back to Accounts</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 24px;">
+            <span class="badge badge-primary" style="margin-bottom: 6px;">REQ-F-002 • DETAILED LEDGER PROJECTION</span>
+            <h1 id="account-heading" style="font-size: 1.75rem; font-weight: 700;">Account Details & History</h1>
+            <p id="account-subheading" style="color: var(--c-text-secondary); font-size: 0.875rem;">Loading account details...</p>
+        </div>
+
+        <div class="grid-cols-4" style="margin-bottom: 24px;">
+            <div class="stat-card">
+                <div class="stat-label">Available Balance</div>
+                <div id="stat-avail" class="stat-value" style="color: var(--c-primary);">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Ledger Balance</div>
+                <div id="stat-current" class="stat-value">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Holds</div>
+                <div id="stat-holds" class="stat-value" style="color: var(--c-warn);">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Overdraft Protection Limit</div>
+                <div id="stat-overdraft" class="stat-value">$0.00</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 1.125rem; margin-bottom: 16px;">Posted Transaction Ledger</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entry ID</th>
+                            <th>Txn ID</th>
+                            <th>Entry Type</th>
+                            <th>Narrative / Memo</th>
+                            <th>Amount</th>
+                            <th>Balance After</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-txns-tbody">
+                        <tr><td colspan="7">Loading ledger records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadAccountDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const accountId = urlParams.get('account_id') || 'acc_01';
+
+            try {
+                const bal = await BankingAPI.getAccountBalance(accountId);
+                document.getElementById('account-heading').innerText = `Account Ledger: ${bal.account_id}`;
+                document.getElementById('account-subheading').innerText = `Currency: ${bal.currency} | Real-Time Sync`;
+                document.getElementById('stat-avail').innerText = `$${bal.available_balance.toFixed(2)}`;
+                document.getElementById('stat-current').innerText = `$${bal.current_balance.toFixed(2)}`;
+                document.getElementById('stat-holds').innerText = `$${bal.pending_holds.toFixed(2)}`;
+                document.getElementById('stat-overdraft').innerText = `$${bal.overdraft_limit.toFixed(2)}`;
+
+                const txns = await BankingAPI.getAccountTransactions(accountId);
+                const tbody = document.getElementById('detail-txns-tbody');
+                tbody.innerHTML = '';
+
+                if (!txns.transactions || txns.transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7">No ledger entries for this account.</td></tr>';
+                    return;
+                }
+
+                txns.transactions.forEach(t => {
+                    const tr = document.createElement('tr');
+                    const isCredit = t.entry_type === 'CREDIT';
+                    tr.innerHTML = `
+                        <td><code>${t.entry_id}</code></td>
+                        <td><code>${t.transaction_id}</code></td>
+                        <td><span class="badge ${isCredit ? 'badge-success' : 'badge-danger'}">${t.entry_type}</span></td>
+                        <td>${t.narrative}</td>
+                        <td style="font-weight: 600; color: ${isCredit ? 'var(--c-ok)' : 'var(--c-danger)'}">
+                            ${isCredit ? '+' : '-'}$${t.amount.toFixed(2)}
+                        </td>
+                        <td>$${t.balance_after.toFixed(2)}</td>
+                        <td>${t.posted_at}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadAccountDetails);
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Customer Onboarding | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/login.html" class="nav-link">Already a customer? Sign In</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="max-width: 680px; margin: 0 auto;">
+            <div class="card">
+                <div style="margin-bottom: 24px;">
+                    <span class="badge badge-primary" style="margin-bottom: 8px;">REQ-F-006 • REQ-N-007</span>
+                    <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;">Instant Digital Onboarding (< 3 Mins)</h1>
+                    <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                        Real-time KYC identity verification, biometric security token creation, and initial deposit setup.
+                    </p>
+                </div>
+
+                <div id="onboard-alert" class="alert" style="display: none;"></div>
+
+                <form id="onboard-form">
+                    <div class="grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="full-name">Legal Full Name</label>
+                            <input type="text" id="full-name" class="form-control" placeholder="e.g. Jordan Hayes" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email Address</label>
+                            <input type="email" id="email" class="form-control" placeholder="jordan@example.com" required>
+                        </div>
+                    </div>
+
+                    <div class="grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="phone">Mobile Phone (eKYC SMS OTP)</label>
+                            <input type="tel" id="phone" class="form-control" placeholder="+1-555-0199" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="id-type">Identification Type</label>
+                            <select id="id-type" class="form-control" required>
+                                <option value="PASSPORT">Passport (Biometric Chip)</option>
+                                <option value="DRIVERS_LICENSE">Driver's License (State RealID)</option>
+                                <option value="NATIONAL_ID">National ID Card</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="id-number">Government ID / Document Number</label>
+                            <input type="text" id="id-number" class="form-control" placeholder="e.g. P108294821" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="initial-deposit">Initial Funding Amount ($ USD)</label>
+                            <input type="number" id="initial-deposit" class="form-control" value="250.00" min="0" step="10" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="account-type">Primary Account Selection</label>
+                        <select id="account-type" class="form-control" required>
+                            <option value="CHECKING">High-Yield Digital Checking Account</option>
+                            <option value="SAVINGS">Reserve High-Yield Savings Account</option>
+                            <option value="COMMERCIAL_CHECKING">Commercial SME Business Checking</option>
+                        </select>
+                    </div>
+
+                    <div style="background: var(--c-surface-raised); border: 1px solid var(--c-border); padding: 14px; border-radius: var(--radius-sm); margin-bottom: 20px;">
+                        <label style="display: flex; gap: 10px; align-items: center; font-size: 0.875rem; cursor: pointer;">
+                            <input type="checkbox" id="biometric-consent" checked required>
+                            <span>Enable FAPI Biometric Token binding (FaceID / TouchID / WebAuthn) for high-value step-up challenges</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" id="btn-submit-onboard" class="btn btn-primary btn-block">Complete Real-Time Onboarding</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        document.getElementById('onboard-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('onboard-alert');
+            const submitBtn = document.getElementById('btn-submit-onboard');
+
+            const payload = {
+                full_name: document.getElementById('full-name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                id_type: document.getElementById('id-type').value,
+                id_number: document.getElementById('id-number').value,
+                initial_deposit: parseFloat(document.getElementById('initial-deposit').value),
+                account_type: document.getElementById('account-type').value
+            };
+
+            try {
+                submitBtn.disabled = true;
+                const res = await BankingAPI.onboard(payload);
+                alertBox.className = 'alert alert-success';
+                alertBox.style.display = 'block';
+                alertBox.innerHTML = `<strong>${res.message}</strong><br>Customer ID: <code>${res.customer_id}</code> | Account Number: <strong>${res.account_number}</strong>`;
+                setTimeout(() => window.location.href = '/pages/accounts-dashboard.html', 1500);
+            } catch (err) {
+                alertBox.className = 'alert alert-danger';
+                alertBox.style.display = 'block';
+                alertBox.innerText = 'Onboarding failed: ' + (err.message || JSON.stringify(err));
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
