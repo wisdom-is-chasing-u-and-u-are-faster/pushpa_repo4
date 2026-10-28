@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Accounts Dashboard | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link active">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+            <div>
+                <span class="badge badge-primary" style="margin-bottom: 6px;">REQ-F-002 • REAL-TIME BALANCES</span>
+                <h1 style="font-size: 1.75rem; font-weight: 700;">Retail Accounts Overview</h1>
+                <p style="color: var(--c-text-secondary); font-size: 0.875rem;">Connected to Amazon Aurora PostgreSQL Core Ledger</p>
+            </div>
+            <div>
+                <a href="/pages/fund-transfer.html" class="btn btn-primary">+ Instant Multi-Rail Transfer</a>
+            </div>
+        </div>
+
+        <div id="accounts-grid" class="grid-cols-3" style="margin-bottom: 28px;">
+            <!-- Dynamically populated via API -->
+            <div class="stat-card">Loading accounts...</div>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="font-size: 1.125rem;">Recent Double-Entry Journal Records</h2>
+                <span id="selected-account-label" class="badge badge-primary">Account: CHK-8921-4820</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Entry ID</th>
+                            <th>Type</th>
+                            <th>Narrative</th>
+                            <th>Amount</th>
+                            <th>Balance After</th>
+                            <th>Posted Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-tbody">
+                        <tr><td colspan="7">Loading ledger entries...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadAccountsDashboard() {
+            try {
+                const data = await BankingAPI.getAccounts();
+                const grid = document.getElementById('accounts-grid');
+                grid.innerHTML = '';
+
+                if (!data.accounts || data.accounts.length === 0) {
+                    grid.innerHTML = '<div class="stat-card">No active accounts found.</div>';
+                    return;
+                }
+
+                data.accounts.forEach((acc, idx) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card';
+                    cardEl.style.cursor = 'pointer';
+                    cardEl.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span class="stat-label">${acc.account_type}</span>
+                            <span class="badge badge-success">${acc.status}</span>
+                        </div>
+                        <div class="stat-value" style="color: var(--c-primary); margin-bottom: 4px;">
+                            $${acc.available_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div style="color: var(--c-text-secondary); font-size: 0.8125rem; margin-bottom: 14px;">
+                            ${acc.account_number} • ${acc.currency}
+                        </div>
+                        <a href="/pages/account-details.html?account_id=${acc.account_id}" class="btn btn-secondary btn-block" style="font-size: 0.8125rem;">View Full Ledger & Details</a>
+                    `;
+                    grid.appendChild(cardEl);
+                });
+
+                // Load transactions for the first account
+                loadTransactions(data.accounts[0].account_id, data.accounts[0].account_number);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadTransactions(accountId, accNum) {
+            document.getElementById('selected-account-label').innerText = `Account: ${accNum}`;
+            const res = await BankingAPI.getAccountTransactions(accountId);
+            const tbody = document.getElementById('transactions-tbody');
+            tbody.innerHTML = '';
+
+            if (!res.transactions || res.transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No posted transactions recorded.</td></tr>';
+                return;
+            }
+
+            res.transactions.forEach(t => {
+                const tr = document.createElement('tr');
+                const isCredit = t.entry_type === 'CREDIT';
+                tr.innerHTML = `
+                    <td><code>${t.entry_id}</code></td>
+                    <td><span class="badge ${isCredit ? 'badge-success' : 'badge-danger'}">${t.entry_type}</span></td>
+                    <td>${t.narrative}</td>
+                    <td style="font-weight: 600; color: ${isCredit ? 'var(--c-ok)' : 'var(--c-danger)'}">
+                        ${isCredit ? '+' : '-'}$${t.amount.toFixed(2)}
+                    </td>
+                    <td>$${t.balance_after.toFixed(2)}</td>
+                    <td>${t.posted_at}</td>
+                    <td><span class="badge badge-success">${t.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAccountsDashboard);
+    </script>
+</body>
+</html>

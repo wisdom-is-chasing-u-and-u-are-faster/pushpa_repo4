@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual-Custody Approval Queue | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link active">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 24px;">
+            <span class="badge badge-primary" style="margin-bottom: 6px;">REQ-F-008 • DUAL-CUSTODY SAGA WORKFLOW</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Dual-Custody Approval Queue</h1>
+            <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                Authorized compliance officer & managerial sign-off for high-value commercial disbursements.
+            </p>
+        </div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Approval ID</th>
+                            <th>Txn ID</th>
+                            <th>Initiator</th>
+                            <th>Recipient</th>
+                            <th>Amount</th>
+                            <th>Rail</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvals-tbody">
+                        <tr><td colspan="8">Loading approval queue...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadApprovals() {
+            try {
+                const res = await BankingAPI.getApprovals();
+                const tbody = document.getElementById('approvals-tbody');
+                tbody.innerHTML = '';
+
+                if (!res.approvals || res.approvals.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8">No transactions currently awaiting dual-custody approval.</td></tr>';
+                    return;
+                }
+
+                res.approvals.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const isPending = item.status === 'PENDING';
+                    tr.innerHTML = `
+                        <td><code>${item.approval_id}</code></td>
+                        <td><code>${item.transaction_id}</code></td>
+                        <td>${item.initiator}</td>
+                        <td><strong>${item.recipient}</strong></td>
+                        <td style="font-weight: 700; color: var(--c-primary);">$${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td><span class="badge badge-primary">${item.rail}</span></td>
+                        <td>
+                            <span class="badge ${isPending ? 'badge-warning' : (item.status === 'APPROVED' ? 'badge-success' : 'badge-danger')}">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td>
+                            ${isPending ? `
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-success btn-approval-action" style="padding: 4px 10px; font-size: 0.75rem;"
+                                            data-approval-id="${item.approval_id}" data-action="APPROVE">Approve</button>
+                                    <button class="btn btn-danger btn-approval-action" style="padding: 4px 10px; font-size: 0.75rem;"
+                                            data-approval-id="${item.approval_id}" data-action="REJECT">Reject</button>
+                                </div>
+                            ` : `<span style="font-size: 0.75rem; color: var(--c-text-secondary);">Processed</span>`}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Attach handlers
+                document.querySelectorAll('.btn-approval-action').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const approvalId = btn.dataset.approvalId;
+                        const action = btn.dataset.action;
+                        btn.disabled = true;
+                        try {
+                            await BankingAPI.executeApproval(approvalId, action, 'Manager portal sign-off');
+                            loadApprovals();
+                        } catch (err) {
+                            alert('Action failed: ' + err.message);
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadApprovals);
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Controls & Instant POS Freeze | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link active">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="margin-bottom: 24px;">
+            <span class="badge badge-primary" style="margin-bottom: 6px;">REQ-F-003 • REQ-F-011 • SUB-SECOND POS FREEZE</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Debit & Virtual Cards Management</h1>
+            <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                Sub-second merchant POS freeze propagation and spend limit enforcement.
+            </p>
+        </div>
+
+        <div id="cards-container" class="grid-cols-2">
+            <!-- Dynamically populated via API -->
+            <div class="card">Loading cards...</div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadCards() {
+            try {
+                const res = await BankingAPI.getCards();
+                const container = document.getElementById('cards-container');
+                container.innerHTML = '';
+
+                if (!res.cards || res.cards.length === 0) {
+                    container.innerHTML = '<div class="card">No active cards found.</div>';
+                    return;
+                }
+
+                res.cards.forEach(card => {
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.className = 'card';
+                    cardWrapper.innerHTML = `
+                        <div class="card-visual ${card.is_frozen ? 'frozen' : ''}" style="margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+                                <span style="font-size: 0.875rem; font-weight: 700; letter-spacing: 0.05em;">APEX DIGITAL BANK</span>
+                                <span class="badge ${card.is_frozen ? 'badge-danger' : 'badge-success'}" style="background: rgba(255,255,255,0.25); color: #fff;">
+                                    ${card.is_frozen ? 'FROZEN' : 'ACTIVE'}
+                                </span>
+                            </div>
+                            <div style="font-size: 1.35rem; font-family: monospace; letter-spacing: 0.15em; margin-bottom: 20px;">
+                                ${card.card_number_masked}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8125rem;">
+                                <div>
+                                    <div style="opacity: 0.7; font-size: 0.6875rem;">CARDHOLDER</div>
+                                    <div style="font-weight: 600;">${card.cardholder_name}</div>
+                                </div>
+                                <div>
+                                    <div style="opacity: 0.7; font-size: 0.6875rem;">EXPIRES</div>
+                                    <div style="font-weight: 600;">${card.expiry}</div>
+                                </div>
+                                <div>
+                                    <div style="opacity: 0.7; font-size: 0.6875rem;">TYPE</div>
+                                    <div style="font-weight: 600;">${card.card_type}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <div>
+                                <span style="color: var(--c-text-secondary); font-size: 0.8125rem;">Daily POS Spend Limit</span>
+                                <div style="font-weight: 700; font-size: 1.125rem;">$${card.spend_limit.toFixed(2)}</div>
+                            </div>
+                            <div>
+                                <button class="btn ${card.is_frozen ? 'btn-success' : 'btn-danger'} btn-toggle-freeze"
+                                        data-card-id="${card.card_id}"
+                                        data-is-frozen="${card.is_frozen}">
+                                    ${card.is_frozen ? '⚡ Unfreeze Card' : '🔒 Freeze Instantly'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(cardWrapper);
+                });
+
+                // Attach event listeners
+                document.querySelectorAll('.btn-toggle-freeze').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const cardId = btn.dataset.cardId;
+                        const isFrozen = btn.dataset.isFrozen === 'true';
+                        btn.disabled = true;
+                        try {
+                            if (isFrozen) {
+                                await BankingAPI.unfreezeCard(cardId);
+                            } else {
+                                await BankingAPI.freezeCard(cardId, 'Cardholder emergency freeze');
+                            }
+                            loadCards();
+                        } catch (err) {
+                            alert('Action failed: ' + err.message);
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadCards);
+    </script>
+</body>
+</html>

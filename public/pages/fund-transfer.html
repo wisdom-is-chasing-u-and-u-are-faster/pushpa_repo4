@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Rail Fund Transfer Hub | Next-Gen Digital Banking</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="/" class="navbar-brand">Apex Digital Banking</a>
+        <nav>
+            <ul class="navbar-nav">
+                <li><a href="/pages/accounts-dashboard.html" class="nav-link">Accounts</a></li>
+                <li><a href="/pages/fund-transfer.html" class="nav-link active">Transfers</a></li>
+                <li><a href="/pages/card-management.html" class="nav-link">Cards</a></li>
+                <li><a href="/pages/sme-dashboard.html" class="nav-link">SME Portal</a></li>
+                <li><a href="/pages/approval-queue.html" class="nav-link">Approvals</a></li>
+                <li><a href="/pages/transaction-monitoring.html" class="nav-link">Fraud Radar</a></li>
+                <li><a href="/pages/audit-explorer.html" class="nav-link">Audit</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div style="max-width: 720px; margin: 0 auto;">
+            <div class="card">
+                <div style="margin-bottom: 24px;">
+                    <span class="badge badge-primary" style="margin-bottom: 6px;">REQ-F-001 • REQ-F-014 • IDEMPOTENT MULTI-RAIL</span>
+                    <h1 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;">Multi-Rail Fund Transfer Hub</h1>
+                    <p style="color: var(--c-text-secondary); font-size: 0.875rem;">
+                        Instant clearing across FedNow, RTP, SEPA Instant, ACH, and SWIFT ISO 20022 networks.
+                    </p>
+                </div>
+
+                <div id="transfer-alert" class="alert" style="display: none;"></div>
+
+                <form id="transfer-form">
+                    <div class="grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="source-account">Source Account</label>
+                            <select id="source-account" class="form-control" required>
+                                <option value="acc_01">CHK-8921-4820 (Available: $24,580.50)</option>
+                                <option value="acc_02">SAV-3104-9122 (Available: $142,000.00)</option>
+                                <option value="acc_03">BUS-7741-0021 (Available: $850,240.00)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="transfer-rail">Clearing Rail Network</label>
+                            <select id="transfer-rail" class="form-control" required>
+                                <option value="FedNow">FedNow Instant Rail (< 1 sec)</option>
+                                <option value="RTP">The Clearing House RTP (< 2 sec)</option>
+                                <option value="SEPA_INSTANT">SEPA Instant Euro (< 5 sec)</option>
+                                <option value="ACH_SAME_DAY">Same-Day ACH (Standard)</option>
+                                <option value="SWIFT_ISO20022">SWIFT Cross-Border (ISO 20022)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="dest-account">Destination Routing / Account Number</label>
+                            <input type="text" id="dest-account" class="form-control" placeholder="e.g. 021000021:991204812" value="021000021:991204812" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="beneficiary-name">Beneficiary Full Name / Entity</label>
+                            <input type="text" id="beneficiary-name" class="form-control" placeholder="e.g. Acme Corp" value="Acme Corporation" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="transfer-amount">Transfer Amount ($ USD)</label>
+                        <input type="number" id="transfer-amount" class="form-control" placeholder="0.00" value="500.00" min="1" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="transfer-memo">Payment Reference / Narrative</label>
+                        <input type="text" id="transfer-memo" class="form-control" placeholder="e.g. Invoice #9841 Payment" value="Supplier Invoice Settlement">
+                    </div>
+
+                    <div style="background: #EBF2FF; border: 1px solid #BFDBFE; padding: 14px; border-radius: var(--radius-sm); margin-bottom: 20px; font-size: 0.8125rem; color: var(--c-primary-dark);">
+                        🔒 <strong>Zero Transaction Loss Guaranteed:</strong> Outbox CDC and Distributed Saga state machines ensure atomicity and automatic ledger rollback on network timeouts.
+                    </div>
+
+                    <button type="submit" id="btn-submit-transfer" class="btn btn-primary btn-block">
+                        Authorize & Execute Transfer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
